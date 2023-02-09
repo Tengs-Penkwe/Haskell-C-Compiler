@@ -1,0 +1,36 @@
+name: kaleidoscope
+version: 0.1.0
+dependencies:
+  - base >= 4.7 && < 5
+
+# system-ghc: true
+
+library:
+  hs-source-dirs:
+    - src
+  exposed-modules:
+    - Parser
+  dependencies:
+    - parsec
+
+executable:
+  main: app/Main.hs
+  dependencies:
+    - kaleidoscope
+    - parsec
+    - base
+    - mtl >= 2.1.3
+    - haskeline >= 0.7.1.2
+  # modules:
+  #   - Lexer
+
+test-suite my-tests:
+  type: exitcode-stdio-1.0
+  main: test/Spec.hs
+  dependencies:
+    - Lexer
+
+# source-repository head
+#   type: git
+#   location: https://github.com/user/my-project.git
+
