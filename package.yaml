@@ -28,7 +28,7 @@ test-suite my-tests:
   type: exitcode-stdio-1.0
   main: test/Spec.hs
   dependencies:
-    - Lexer
+    - Token
 
 # source-repository head
 #   type: git
