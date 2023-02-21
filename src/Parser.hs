@@ -6,46 +6,40 @@ import Text.Parsec.String (Parser)
 import qualified Text.Parsec.Expr as Ex
 import qualified Text.Parsec.Token as Tok
 
-import Lexer
+import Token
 import Syntax
 
-binary s f assoc = Ex.Infix (reservedOp s >> return (BinOp f)) assoc
+getStatements :: String -> Either ParseError [Stmt]
+getStatements s = parse (contents splitLine) "<stdin>" s
 
-table = [[binary "*" Times Ex.AssocLeft, binary "/" Divide Ex.AssocLeft],
-  [binary "+" Plus Ex.AssocLeft, binary "-" Minus Ex.AssocLeft]]
+{-- --}
+contents :: Parser a -> Parser a
+contents p = do
+  whiteSpace
+  r <- p
+  eof
+  return r
 
-int :: Parser Expr
-int = do
-  n <- integer
-  return $ Float (fromInteger n)
+splitLine :: Parser [Stmt]
+splitLine = many $ do
+  def <- statement
+  reservedOp ";"
+  return def
 
-floating :: Parser Expr
-floating = do
-  n <- float
-  return $ Float n
+{-- ====================
+ -  Expression
+ -  every expression in C can be seem as an expression-statement
+ - ==================== --}
 
 expr :: Parser Expr
-expr = Ex.buildExpressionParser table factor
+expr = Ex.buildExpressionParser binOpTable factor
 
-variable :: Parser Expr
-variable = do
-  var <- identifier
-  return $ Var var
-
-function :: Parser Expr
-function = do
-  reserved "def"
-  name <- identifier
-  args <- parens $ many variable
-  body <- expr
-  return $ Function name args body
-
-extern :: Parser Expr
-extern = do
-  reserved "extern"
-  name <- identifier
-  args <- parens $ many variable
-  return $ Extern name args
+factor :: Parser Expr
+factor
+   =  try constant
+  <|> try call
+  <|> variable
+  <|> parens expr
 
 call :: Parser Expr
 call = do
@@ -53,35 +47,74 @@ call = do
   args <- parens $ commaSep expr
   return $ Call name args
 
-factor :: Parser Expr
-factor = try floating
-  <|> try int
-  <|> try extern
-  <|> try function
-  <|> try call
-  <|> variable
-  <|> parens expr
+{-- Binary Operator Function --}
+-- helper function
+binary symbol func associativity = Ex.Infix (reservedOp symbol >> return (BinaryOp func)) associativity
 
-defn :: Parser Expr
-defn = try extern
-  <|> try function
-  <|> expr
+binOpTable = [[binary "*"  Multiple Ex.AssocLeft, binary "/"  Divide Ex.AssocLeft]
+             ,[binary "+"  Plus     Ex.AssocLeft, binary "-"  Minus  Ex.AssocLeft]
+             ,[binary "==" Equal    Ex.AssocLeft, binary "!=" NotEq  Ex.AssocLeft]
+             ,[binary "<"  Less     Ex.AssocLeft, binary ">"  More   Ex.AssocLeft,
+               binary "<=" LessEq   Ex.AssocLeft, binary ">=" MoreEq Ex.AssocLeft]
+             ,[binary "&&" And      Ex.AssocLeft, binary "||" Or     Ex.AssocLeft]]
 
-contents :: Parser a -> Parser a
-contents p = do
-  Tok.whiteSpace lexer
-  r <- p
-  eof
-  return r
+{-- Parse Constant in Expr
+ - can be float or int --}
+constant :: Parser Expr
+constant 
+  =   try (do
+            n <- float
+            return $ Const Float (Floating n))
+  <|> try (do
+            n <- integer
+            return $ Const Int (Integer n))
+  <?> "Not a legal Constant"
 
-toplevel :: Parser [Expr]
-toplevel = many $ do
-  def <- defn
-  reservedOp ";"
-  return def
+variable :: Parser Expr
+variable = do
+  var <- identifier
+  return $ Var var
 
-parseExpr :: String -> Either ParseError Expr
-parseExpr s = parse (contents expr) "<stdin>" s
+{-- ====================
+ -  Statement 
+ - ==================== --}
+statement :: Parser Stmt
+statement = try ifStmt
+  <|> try whileStmt
+  <|> try retStmt
+  <|> exprStmt
+  <?> "statement"
 
-parseToplevel :: String -> Either ParseError [Expr]
-parseToplevel s = parse (contents toplevel) "<stdin>" s
+exprStmt :: Parser Stmt
+exprStmt = do
+  expression <- expr
+  return $ ExprStmt expression
+
+ifStmt :: Parser Stmt
+ifStmt 
+  =   try (do reserved "if"
+              cond    <- parens expr
+              ifExec  <- braces statement
+              reserved "else" 
+              elseExec<- braces statement
+              return $ IfStmt cond ifExec elseExec)
+  <|> try (do reserved "if"
+              cond    <- parens expr
+              ifExec  <- statement
+              return $ IfStmt cond ifExec VoidStmt)
+
+whileStmt :: Parser Stmt
+whileStmt
+  =   try (do reserved "while"
+              cond  <- parens expr
+              execs <- braces statement
+              return $ IterStmt cond execs)
+
+retStmt :: Parser Stmt
+retStmt 
+  =   try (do reserved "return"
+              exec <- statement
+              return $ RetStmt exec)
+  <|> try (do reserved "return"
+              return $ RetStmt VoidStmt)
+

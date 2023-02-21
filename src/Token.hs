@@ -23,11 +23,11 @@ reservedOperations = [
   "+", "-", "*", "/",      -- Binary Operator
   "&&","||",               -- Logic Operator
   "&", "~", "!",           -- Unary Operator
-  ">=","<=",">",  "<",  "==", "!="        -- Comparator
+  ">=","<=",">",  "<",  "==", "!=",        -- Comparator
   "=", "*=","/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|=" ]
 
 reservedNames = [ 
-  "void", "char", "int", "long", "float", "double", 
+  "void", "char", "short", "int", "long", "float", "double", 
   "if", "else", "while", "do", "switch", "case",
   "return" ]
 
