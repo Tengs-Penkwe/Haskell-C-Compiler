@@ -22,6 +22,7 @@ cStyle = emptyDef {
 reservedOperations = [
   "+", "-", "*", "/",      -- Binary Operator
   "&", "~", "!",           -- Unary Operator
+  ">=","==","<=",          -- Comparator
   "=", "*=","/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|=" ]
 
 reservedNames = [ 
