@@ -21,6 +21,7 @@ cStyle = emptyDef {
 
 reservedOperations = [
   "+", "-", "*", "/",      -- Binary Operator
+  "&&","||",               -- Logic Operator
   "&", "~", "!",           -- Unary Operator
   ">=","<=",">",  "<",  "==", "!="        -- Comparator
   "=", "*=","/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|=" ]
