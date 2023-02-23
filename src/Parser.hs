@@ -1,35 +1,190 @@
 module Parser where
 
+import Token
+import Syntax
+
 import Text.Parsec
 import Text.Parsec.String (Parser)
 
 import qualified Text.Parsec.Expr as Ex
 import qualified Text.Parsec.Token as Tok
 
-import Token
-import Syntax
+{-- ========================================
+ -           Program to Blocks
+ - ======================================== --}
+parseProgram :: String -> Either ParseError Program
+parseProgram s = parse getBlocks "<stdin>" s
 
-getStatements :: String -> Either ParseError [Stmt]
-getStatements s = parse (contents splitLine) "<stdin>" s
+getBlocks :: Parser Program
+getBlocks = do
+  blks   <- many1 block
+  return blks
 
-{-- --}
-contents :: Parser a -> Parser a
-contents p = do
-  whiteSpace
-  r <- p
-  eof
-  return r
+{-- ========================================
+ -                Blocks
+ - ======================================== --}
+-- These are the three possible blocks
+block :: Parser Block
+block 
+    =  try declaration
+   <|> try function
+   <|> try protoFunc
+   <?> "block"
 
-splitLine :: Parser [Stmt]
-splitLine = many $ do
-  def <- statement
-  reservedOp ";"
-  return def
+declaration :: Parser Block
+declaration = do
+  dlist   <- declList <* semi
+  return $ Decl dlist
+  <?> "declaration"
 
-{-- ====================
- -  Expression
- -  every expression in C can be seem as an expression-statement
- - ==================== --}
+protoFunc :: Parser Block
+protoFunc = do
+  (tp, name, params) <- funcDecl
+  return $ ProtoFunc tp name params
+
+function :: Parser Block
+function = do
+  (tp, name, params) <- funcDecl
+  stmt <- statement
+  return $ Func tp name params stmt
+
+{-- ========================================
+ -                Specifier
+ - ======================================== --}
+specifier :: Parser Type
+specifier 
+   =  (reserved "void"  >> return Void)
+  <|> (reserved "char"  >> return Char)
+  <|> (reserved "short" >> return Short)
+  <|> (reserved "int"   >> return Int)
+  <|> (reserved "long"  >> return Long)
+  <|> (reserved "float" >> return Float)
+  <|> (reserved "double"  >> return Double)
+  <?> "valid type"
+
+{-- ========================================
+ -                Declaration
+ - ======================================== --}
+declList :: Parser DeclList
+declList = do 
+  tp    <- specifier
+  name  <- commaSep declarator 
+  return $ genDecl tp name
+
+genDecl :: Type -> [(String, DirectDeclarator)] -> DeclList
+genDecl t str_decl = foldr f [] str_decl
+  where f (ptr, direct) acc = (checkPointer ptr t, direct):acc
+        checkPointer ptr t = if ptr == "*" then Pointer t else t 
+
+declarator :: Parser (String, DirectDeclarator)
+declarator = do
+  ptr  <- pointer
+  decl <- directDecl
+  return $ (ptr, decl)
+  where pointer = option "" $ (reserved "*" >> return "*")
+
+funcDecl :: Parser (Type, Name, ParamList)
+funcDecl = do
+  tp     <- specifier
+  name   <- identifier
+  params <- parens $ commaSep paramDecl
+  return (tp, name, params)
+
+paramDecl :: Parser Param
+paramDecl = do
+  tp    <- specifier
+  name  <- identifier
+  return (tp, name)
+
+directDecl :: Parser DirectDeclarator
+directDecl
+   =  try arrayDecl
+  <|> try variableDecl
+
+arrayDecl :: Parser DirectDeclarator
+arrayDecl 
+   =  try (do var     <- identifier 
+              length  <- brackets integer
+              _       <- symbol "="
+              stmt    <- statement
+              return $ Array var length stmt)
+  <|> try (do var     <- identifier 
+              length  <- brackets integer
+              return $ Array var length VoidStmt)
+
+variableDecl :: Parser DirectDeclarator
+variableDecl
+   =  try (do var     <- identifier
+              return $ Var var VoidStmt)
+  <|> try (do var     <- identifier
+              _       <- symbol "="
+              stmt    <- statement
+              return $ Var var stmt)
+
+
+{-- ========================================
+ -                Statement 
+ - ======================================== --}
+statement :: Parser Stmt
+statement
+   =  try exprStmt 
+  <|> try voidStmt
+  <|> try compoundStmt
+  <|> try ifStmt
+  <|> try whileStmt
+  <|> try retStmt
+  <?> "statement"
+
+voidStmt :: Parser Stmt
+voidStmt = do
+  _     <- semi
+  return VoidStmt
+
+exprStmt :: Parser Stmt
+exprStmt = do
+  expression <- expr <* semi
+  return $ ExprStmt expression
+
+compoundStmt :: Parser Stmt
+compoundStmt = do
+  _         <- symbol "{"
+  declList  <- many $ try (declList <* semi)
+  stmtList  <- many $ try statement 
+  _         <- symbol "}"
+  return $ CompoundStmt (concat declList) stmtList
+  <?> "compoundStmt"
+
+ifStmt :: Parser Stmt
+ifStmt 
+  =   try (do reserved "if"
+              cond    <- parens expr
+              ifExec  <- braces statement
+              reserved "else" 
+              elseExec<- braces statement
+              return $ IfStmt cond ifExec elseExec)
+  <|> try (do reserved "if"
+              cond    <- parens expr
+              ifExec  <- statement
+              return $ IfStmt cond ifExec VoidStmt)
+
+whileStmt :: Parser Stmt
+whileStmt
+  =   try (do reserved "while"
+              cond  <- parens expr
+              execs <- braces statement
+              return $ IterStmt cond execs)
+
+retStmt :: Parser Stmt
+retStmt 
+  =   try (do reserved "return"
+              exec <- statement
+              return $ RetStmt exec)
+  <|> try (do reserved "return"
+              return $ RetStmt VoidStmt)
+
+{-- ========================================
+ -                Expression
+ - ======================================== --}
 
 expr :: Parser Expr
 expr = Ex.buildExpressionParser binOpTable factor
@@ -73,48 +228,5 @@ constant
 variable :: Parser Expr
 variable = do
   var <- identifier
-  return $ Var var
-
-{-- ====================
- -  Statement 
- - ==================== --}
-statement :: Parser Stmt
-statement = try ifStmt
-  <|> try whileStmt
-  <|> try retStmt
-  <|> exprStmt
-  <?> "statement"
-
-exprStmt :: Parser Stmt
-exprStmt = do
-  expression <- expr
-  return $ ExprStmt expression
-
-ifStmt :: Parser Stmt
-ifStmt 
-  =   try (do reserved "if"
-              cond    <- parens expr
-              ifExec  <- braces statement
-              reserved "else" 
-              elseExec<- braces statement
-              return $ IfStmt cond ifExec elseExec)
-  <|> try (do reserved "if"
-              cond    <- parens expr
-              ifExec  <- statement
-              return $ IfStmt cond ifExec VoidStmt)
-
-whileStmt :: Parser Stmt
-whileStmt
-  =   try (do reserved "while"
-              cond  <- parens expr
-              execs <- braces statement
-              return $ IterStmt cond execs)
-
-retStmt :: Parser Stmt
-retStmt 
-  =   try (do reserved "return"
-              exec <- statement
-              return $ RetStmt exec)
-  <|> try (do reserved "return"
-              return $ RetStmt VoidStmt)
+  return $ Variable var
 
