@@ -24,7 +24,7 @@ reservedOperations = [
   "&&","||",               -- Logic Operator
   "&", "~", "!",           -- Unary Operator
   ">=","<=",">",  "<",  "==", "!=",        -- Comparator
-  "=", "*=","/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|=" ]
+  "=", "*=","/=", "%=", "+=", "-=", "<<=", ">>=", "&=", "^=", "|=" ]      --Assignment
 
 reservedNames = [ 
   "void", "char", "short", "int", "long", "float", "double", 
