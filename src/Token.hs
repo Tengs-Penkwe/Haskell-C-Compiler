@@ -53,10 +53,17 @@ x, y, sumOfNumber
 identifier :: Parser String
 identifier = Tok.identifier lexer
 
+{-- Special Symbol --}
+symbol :: String -> Parser String
+symbol = Tok.symbol lexer
+
 {-- Separator --}
 -- separate tokens
 whiteSpace :: Parser ()
 whiteSpace = Tok.whiteSpace lexer
+--
+semi :: Parser String
+semi = Tok.semi lexer
 -- separate statements
 semiSep :: Parser a -> Parser [a]
 semiSep = Tok.semiSep lexer
