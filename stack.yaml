@@ -32,13 +32,14 @@ resolver:
 #   - wai
 packages:
   - .
+  # - llvm-hs
 # Dependency packages to be pulled from upstream that are not in the resolver.
 # These entries can reference officially published versions as well as
 # forks / in-progress versions pinned to a git hash. For example:
 #
 extra-deps:
-  - llvm-hs-9.0.1
-  - llvm-hs-pure-9.0.0
+  # - llvm-hs-9.0.1
+  # - llvm-hs-pure-9.0.0
 
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
