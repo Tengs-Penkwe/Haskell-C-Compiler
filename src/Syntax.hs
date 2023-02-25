@@ -2,11 +2,12 @@ module Syntax where
 
 type Program = [Block]
 type Name = String 
+type Size = Integer
 
 data Block
   = Decl      DeclList
   | Func      Type Name ParamList Stmt
-  | ProtoFunc Type Name ParamList
+  -- | ProtoFunc Type Name ParamList
   deriving(Show)
 
 type Declaration  = (Type, DirectDeclarator)
@@ -14,13 +15,18 @@ type DeclList     = [Declaration]
 type ParamList    = DeclList
 
 
-type Param = (Type, Name)  -- To be deleted
+type Declar       = (Type, Name, Expr)
+type DeclarList   = [Declar]
+
+
+-- (*foo)(double)
+type InitDeclarator = (String, Name, String, Expr)
 
 data DirectDeclarator 
   = Var       Name 
-  | Array     Name Integer 
   | Funct     Name ParamList 
-  deriving(Show) 
+  | Array     Name Integer 
+  deriving(Eq, Ord, Show) 
 
 -- data InitDeclarator
 --   = 
@@ -31,36 +37,9 @@ data DirectDeclarator
 --   | 
 --   |
 
-data Stmt
-  = ExprStmt Expr         -- An experession      
-  | VoidStmt              -- Does nothing 
-  | CompoundStmt DeclList [Stmt]
-  | IfStmt   Expr Stmt Stmt
-  | IterStmt Expr Stmt      --While
-  | RetStmt  Stmt
-  deriving(Show)
-
-data Expr
-  = Const    Type ConstVal
-  | BinaryOp BinOp Expr Expr
-  -- | UnaryOp  UnOp
-  | Assign   Expr Expr
-  | Variable Name
-  | Call     Name [Expr]
-  deriving (Eq, Ord, Show)
-
-
-{-- Literal number 
- 3      => Integer 3
- -4.12  => Float  -4.12
- ================== --}
-data ConstVal
-  = Floating  Double
-  | Integer   Integer
-  | Character Char
-  | String    String
-  deriving (Eq, Ord, Show)
-
+{-- ========================================
+ -                Types
+ - ======================================== --}
 data Type
   = Void
   | Char
@@ -69,15 +48,44 @@ data Type
   | Long
   | Float
   | Double
-  -- | Array
-  | Function 
-  | Pointer Type
+  | Function ParamList
+  | Arr      Type --Size
+  | Pointer  Type
+  deriving (Eq, Ord, Show)
+
+data ConstVal
+  = Floating  Double
+  | Integer   Integer
+  | Character Char
+  | String    String
   deriving (Eq, Ord, Show)
 
 {-- ========================================
- -                Operator
+ -           Statement & Expression
  - ======================================== --}
+data Stmt
+  = ExprStmt      Expr         -- An experession      
+  | CompoundStmt  DeclList [Stmt]
+  | IfStmt        Expr Stmt Stmt
+  | IterStmt      Expr Stmt      --While
+  | RetStmt       Stmt
+  | AssignStmt    Expr Expr
+  | VoidStmt              -- Does nothing 
+  deriving(Show)
 
+data Expr
+  = Const    Type ConstVal
+  | BinaryOp BinOp Expr Expr
+  -- | UnaryOp  UnOp
+  | Assign   Expr
+  | Variable Name
+  | Call     Name [Expr]
+  | VoidExpr
+  deriving (Eq, Ord, Show)
+
+{-- ========================================
+ -                Operators
+ - ======================================== --}
 data UnOp
   = Addr
   | Deref

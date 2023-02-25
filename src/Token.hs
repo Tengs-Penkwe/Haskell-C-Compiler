@@ -1,5 +1,7 @@
 module Token where
 
+import Text.Parsec
+
 import Text.Parsec.String (Parser)
 import Text.Parsec.Language (emptyDef)
 import qualified Text.Parsec.Token as Tok
@@ -52,7 +54,11 @@ float = Tok.float lexer
 x, y, sumOfNumber
 --}
 identifier :: Parser String
-identifier = Tok.identifier lexer
+identifier = do 
+  _       <- optionMaybe $ symbol "("
+  ident   <- Tok.identifier lexer
+  _       <- optionMaybe $ symbol ")"
+  return ident
 
 {-- Special Symbol --}
 symbol :: String -> Parser String

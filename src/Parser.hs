@@ -28,7 +28,6 @@ block :: Parser Block
 block 
     =  try declaration
    -- <|> try function
-   -- <|> try protoFunc
    <?> "block"
 
 declaration :: Parser Block
@@ -36,11 +35,6 @@ declaration = do
   dlist   <- declList <* semi
   return $ Decl dlist
   <?> "declaration"
-
--- protoFunc :: Parser Block
--- protoFunc = do
---   (tp, name, params) <- funcDecl
---   return $ ProtoFunc tp name params
 
 -- function :: Parser Block
 -- function = do
@@ -77,52 +71,28 @@ getDecl t str_decl = foldr f [] str_decl
         checkPointer ptr t = if ptr == "*" then Pointer t else t 
 
 pointer :: Parser String
-pointer = option "" $ (reserved "*" >> return "*")
+pointer = length <$> many (symbol "*")
+
+declar :: Parser (String, InitDeclarator, )
+declar = do
+  ptr   <- pointer 
+  decl  <- (try funcDirect <|> variableDirect)
+  -- arr   <- array
+  init <- optionMaybe assignExpr
+  return (ptr, case init of
+                  Just e  -> (decl, e)
+                  Nothing -> (decl, VoidExpr) )
+
+-- array :: Parser String
+
+getDecl :: Type -> [(String, InitDeclarator)] -> DeclarList
+getDecl tp init_decl = foldr f []   
 
 declarator :: Parser (String, DirectDeclarator)
 declarator = do
   ptr  <- pointer
-  decl <- (try funcDirect <|> arrayDirect <|> variableDirect)
+  decl <- (try funcDirect <|> variableDirect)
   return (ptr, decl)
-  -- func <- optionMaybe functionParams
-  -- case func of
-  --   Nothing -> return (ptr, decl)
-  --   Just params -> return (ptr, FuncDecl decl params)
-  -- where
-  -- functionParams = do
-  --   _ <- symbol "("
-  --   params <- paramList
-  --   _ <- symbol ")"
-  --   return params
-
--- funcDecl :: Parser (Type, Name, ParamList)
--- funcDecl = do
---   tp     <- specifier
---   name   <- identifier
---   params <- parens $ commaSep paramDecl
---   return (tp, name, params)
-
--- paramDecl :: Parser Param
--- paramDecl = do
---   tp    <- specifier
---   name  <- identifier
---   return (tp, name)
-
--- directDecl :: Parser DirectDeclarator
--- directDecl
---    =  try arrayDecl
---   <|> try variableDecl
-
--- arrayDecl :: Parser DirectDeclarator
--- arrayDecl 
---    =  try (do var     <- identifier 
---               length  <- brackets integer
---               _       <- symbol "="
---               stmt    <- statement
---               return $ Array var length stmt)
---   <|> try (do var     <- identifier 
---               length  <- brackets integer
---               return $ Array var length VoidStmt)
 
 funcDirect :: Parser DirectDeclarator
 funcDirect = do 
@@ -131,25 +101,19 @@ funcDirect = do
   return $ Funct name params 
 
 variableDirect :: Parser DirectDeclarator
-variableDirect = Var <$> identifier 
+variableDirect = do
+  var <- identifier
+  sizes <- many $ char '[' *> integer <* char ']'
+  let directDecl = case sizes of
+        [] -> Var var 
+        _  -> foldr (\s acc -> Array var s ) (Var var ) sizes
+  return directDecl
+  -- var     <- identifier
+  -- size    <- optionMaybe $ char '[' >> integer >>= \n -> char ']' >> return n
+  -- return $ case size of
+  --   Nothing -> Var var 
+  --   Just s -> Array var s 
 
-arrayDirect :: Parser DirectDeclarator
-arrayDirect = do
-  var     <- identifier
-  size    <- optionMaybe $ char '[' >> integer >>= \n -> char ']' >> return n
-  return $ case size of
-    Nothing -> Var var 
-    Just s -> Array var s 
-
-
--- variableDecl :: Parser DirectDeclarator
--- variableDecl
---    =  try (do var     <- identifier
---               return $ Var var VoidStmt)
---   <|> try (do var     <- identifier
---               _       <- symbol "="
---               stmt    <- statement
---               return $ Var var stmt)
 {-- ========================================
  -                List
  - ======================================== --}
@@ -174,12 +138,19 @@ statement
   <|> try ifStmt
   <|> try whileStmt
   <|> try retStmt
+  <|> try assignStmt
   <?> "statement"
 
 voidStmt :: Parser Stmt
 voidStmt = do
   _     <- semi
   return VoidStmt
+
+assignStmt :: Parser Stmt
+assignStmt = do
+  var     <- expr
+  assign  <- expr
+  return $ AssignStmt var assign
 
 exprStmt :: Parser Stmt
 exprStmt = do
@@ -234,6 +205,7 @@ factor :: Parser Expr
 factor
    =  try constant
   <|> try call
+  <|> assignExpr
   <|> variable
   <|> parens expr
 
@@ -242,6 +214,12 @@ call = do
   name <- identifier
   args <- parens $ commaSep expr
   return $ Call name args
+
+assignExpr :: Parser Expr
+assignExpr = do
+  _    <- reservedOp "="
+  expr <- expr
+  return $ Assign expr
 
 {-- Binary Operator Function --}
 -- helper function
