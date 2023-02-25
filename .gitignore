@@ -2,3 +2,4 @@
 kaleidoscope.cabal
 *.lock
 .DS_Store
+*.ll
