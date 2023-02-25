@@ -29,7 +29,8 @@ reservedOperations = [
 reservedNames = [ 
   "void", "char", "short", "int", "long", "float", "double", 
   "if", "else", "while", "do", "switch", "case",
-  "return" ]
+  "return",
+  "extern"]
 
 {-- ===============================================
  -   Function to read text and turn it into tokens
