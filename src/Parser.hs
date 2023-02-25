@@ -27,8 +27,8 @@ getBlocks = do
 block :: Parser Block
 block 
     =  try declaration
-   <|> try function
-   <|> try protoFunc
+   -- <|> try function
+   -- <|> try protoFunc
    <?> "block"
 
 declaration :: Parser Block
@@ -37,16 +37,16 @@ declaration = do
   return $ Decl dlist
   <?> "declaration"
 
-protoFunc :: Parser Block
-protoFunc = do
-  (tp, name, params) <- funcDecl
-  return $ ProtoFunc tp name params
+-- protoFunc :: Parser Block
+-- protoFunc = do
+--   (tp, name, params) <- funcDecl
+--   return $ ProtoFunc tp name params
 
-function :: Parser Block
-function = do
-  (tp, name, params) <- funcDecl
-  stmt <- statement
-  return $ Func tp name params stmt
+-- function :: Parser Block
+-- function = do
+--   (tp, name, params) <- funcDecl
+--   stmt <- statement
+--   return $ Func tp name params stmt
 
 {-- ========================================
  -                Specifier
@@ -69,58 +69,99 @@ declList :: Parser DeclList
 declList = do 
   tp    <- specifier
   name  <- commaSep declarator 
-  return $ genDecl tp name
+  return $ getDecl tp name
 
-genDecl :: Type -> [(String, DirectDeclarator)] -> DeclList
-genDecl t str_decl = foldr f [] str_decl
+getDecl :: Type -> [(String, DirectDeclarator)] -> DeclList
+getDecl t str_decl = foldr f [] str_decl
   where f (ptr, direct) acc = (checkPointer ptr t, direct):acc
         checkPointer ptr t = if ptr == "*" then Pointer t else t 
+
+pointer :: Parser String
+pointer = option "" $ (reserved "*" >> return "*")
 
 declarator :: Parser (String, DirectDeclarator)
 declarator = do
   ptr  <- pointer
-  decl <- directDecl
-  return $ (ptr, decl)
-  where pointer = option "" $ (reserved "*" >> return "*")
+  decl <- (try funcDirect <|> arrayDirect <|> variableDirect)
+  return (ptr, decl)
+  -- func <- optionMaybe functionParams
+  -- case func of
+  --   Nothing -> return (ptr, decl)
+  --   Just params -> return (ptr, FuncDecl decl params)
+  -- where
+  -- functionParams = do
+  --   _ <- symbol "("
+  --   params <- paramList
+  --   _ <- symbol ")"
+  --   return params
 
-funcDecl :: Parser (Type, Name, ParamList)
-funcDecl = do
-  tp     <- specifier
-  name   <- identifier
-  params <- parens $ commaSep paramDecl
-  return (tp, name, params)
+-- funcDecl :: Parser (Type, Name, ParamList)
+-- funcDecl = do
+--   tp     <- specifier
+--   name   <- identifier
+--   params <- parens $ commaSep paramDecl
+--   return (tp, name, params)
 
-paramDecl :: Parser Param
-paramDecl = do
-  tp    <- specifier
-  name  <- identifier
-  return (tp, name)
+-- paramDecl :: Parser Param
+-- paramDecl = do
+--   tp    <- specifier
+--   name  <- identifier
+--   return (tp, name)
 
-directDecl :: Parser DirectDeclarator
-directDecl
-   =  try arrayDecl
-  <|> try variableDecl
+-- directDecl :: Parser DirectDeclarator
+-- directDecl
+--    =  try arrayDecl
+--   <|> try variableDecl
 
-arrayDecl :: Parser DirectDeclarator
-arrayDecl 
-   =  try (do var     <- identifier 
-              length  <- brackets integer
-              _       <- symbol "="
-              stmt    <- statement
-              return $ Array var length stmt)
-  <|> try (do var     <- identifier 
-              length  <- brackets integer
-              return $ Array var length VoidStmt)
+-- arrayDecl :: Parser DirectDeclarator
+-- arrayDecl 
+--    =  try (do var     <- identifier 
+--               length  <- brackets integer
+--               _       <- symbol "="
+--               stmt    <- statement
+--               return $ Array var length stmt)
+--   <|> try (do var     <- identifier 
+--               length  <- brackets integer
+--               return $ Array var length VoidStmt)
 
-variableDecl :: Parser DirectDeclarator
-variableDecl
-   =  try (do var     <- identifier
-              return $ Var var VoidStmt)
-  <|> try (do var     <- identifier
-              _       <- symbol "="
-              stmt    <- statement
-              return $ Var var stmt)
+funcDirect :: Parser DirectDeclarator
+funcDirect = do 
+  name    <- identifier
+  params  <- parens paramList 
+  return $ Funct name params 
 
+variableDirect :: Parser DirectDeclarator
+variableDirect = Var <$> identifier 
+
+arrayDirect :: Parser DirectDeclarator
+arrayDirect = do
+  var     <- identifier
+  size    <- optionMaybe $ char '[' >> integer >>= \n -> char ']' >> return n
+  return $ case size of
+    Nothing -> Var var 
+    Just s -> Array var s 
+
+
+-- variableDecl :: Parser DirectDeclarator
+-- variableDecl
+--    =  try (do var     <- identifier
+--               return $ Var var VoidStmt)
+--   <|> try (do var     <- identifier
+--               _       <- symbol "="
+--               stmt    <- statement
+--               return $ Var var stmt)
+{-- ========================================
+ -                List
+ - ======================================== --}
+paramList :: Parser DeclList
+paramList = do
+  params <- commaSep param
+  return $ concat params
+  where 
+    param = do 
+      tp    <- specifier
+      name  <- declarator
+      return $ getDecl tp [name]
 
 {-- ========================================
  -                Statement 

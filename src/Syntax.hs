@@ -9,6 +9,28 @@ data Block
   | ProtoFunc Type Name ParamList
   deriving(Show)
 
+type Declaration  = (Type, DirectDeclarator)
+type DeclList     = [Declaration]
+type ParamList    = DeclList
+
+
+type Param = (Type, Name)  -- To be deleted
+
+data DirectDeclarator 
+  = Var       Name 
+  | Array     Name Integer 
+  | Funct     Name ParamList 
+  deriving(Show) 
+
+-- data InitDeclarator
+--   = 
+--   | 
+
+-- data Initializer 
+--   = 
+--   | 
+--   |
+
 data Stmt
   = ExprStmt Expr         -- An experession      
   | VoidStmt              -- Does nothing 
@@ -21,31 +43,12 @@ data Stmt
 data Expr
   = Const    Type ConstVal
   | BinaryOp BinOp Expr Expr
-  | UnaryOp  UnOp
+  -- | UnaryOp  UnOp
   | Assign   Expr Expr
   | Variable Name
   | Call     Name [Expr]
-  | Function Name [Expr] Expr
   deriving (Eq, Ord, Show)
 
-type Param        = (Type, Name)
-type ParamList    = [Param]
-type DeclList     = [(Type, DirectDeclarator)]
-
-
-data DirectDeclarator 
-  = Var       Name Stmt
-  | Array     Name Integer Stmt
-  deriving(Show)
-
--- data InitDeclarator
---   = 
---   | 
-
--- data Initializer 
---   = 
---   | 
---   |
 
 {-- Literal number 
  3      => Integer 3
@@ -66,8 +69,35 @@ data Type
   | Long
   | Float
   | Double
+  -- | Array
+  | Function 
   | Pointer Type
   deriving (Eq, Ord, Show)
+
+{-- ========================================
+ -                Operator
+ - ======================================== --}
+
+data UnOp
+  = Addr
+  | Deref
+  | Pos
+  | Neg
+  | Not
+  | LogicNot
+
+data AssignOp
+  = Eq
+  | MultipleEq
+  | DivideEq
+  | ModEq
+  | PlusEq
+  | MinusEq
+  | LeftShiftEq
+  | RightShiftEq
+  | AndEq
+  | XorEq
+  | OrEq
 
 data BinOp 
   = Plus
