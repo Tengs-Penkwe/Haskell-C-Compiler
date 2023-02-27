@@ -1,0 +1,3 @@
+[submodule "llvm-hs"]
+	path = llvm-hs
+	url = https://github.com/christianlavoie/llvm-hs.git
