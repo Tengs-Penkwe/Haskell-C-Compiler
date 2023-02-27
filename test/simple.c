@@ -1,13 +1,26 @@
-int * x[5] , * y =3, * z;
+int * x[5], y , z;
 
-float * a, * b, * c;
+float  a,  b, * c;
 
-float try() {float a, b, c;}
+float try() {
+  float a, b, c;
 
-int main(int argc) {
-  if (argc) {
-    argc+1;
+}
+
+void haha() {
+  
+}
+
+int main(int argc, char** argv) {
+
+  try();
+
+  haha();
+
+  if (argc == 0) {
+     argc+z;
   } else {
     argc -1;
   }
+
 }
