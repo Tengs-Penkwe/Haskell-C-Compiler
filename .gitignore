@@ -1,5 +1,6 @@
 .stack-work/
-kaleidoscope.cabal
+*.s
+*.cabal
 *.lock
 .DS_Store
 *.ll
