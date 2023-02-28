@@ -1,41 +1,29 @@
 module Syntax where
 
-type Program = [Block]
+type Program = [Unit]
 type Name = String 
 type Size = Integer
 
-data Block
-  = Decl      DeclList
-  | Func      Type Name ParamList Stmt
+data Unit
+  = Declaration    DeclList
+  | Function       Type Name DeclList Stmt
   -- | ProtoFunc Type Name ParamList
   deriving(Show)
 
-type Declaration  = (Type, DirectDeclarator)
+
+type Declaration  = (Type, InitDeclarator)
 type DeclList     = [Declaration]
+-- type Param        = (Type, Name) -- To be deleted
 type ParamList    = DeclList
 
-
-type Declar       = (Type, Name, Expr)
-type DeclarList   = [Declar]
-
-
 -- (*foo)(double)
-type InitDeclarator = (String, Name, String, Expr)
+type InitDeclarator = (DirectDeclarator, Expr)
 
 data DirectDeclarator 
   = Var       Name 
-  | Funct     Name ParamList 
+  -- | Funct     Name ParamList 
   | Array     Name Integer 
   deriving(Eq, Ord, Show) 
-
--- data InitDeclarator
---   = 
---   | 
-
--- data Initializer 
---   = 
---   | 
---   |
 
 {-- ========================================
  -                Types
@@ -48,8 +36,8 @@ data Type
   | Long
   | Float
   | Double
-  | Function ParamList
-  | Arr      Type --Size
+  -- | Function ParamList
+  | Arr      Expr Type --Size
   | Pointer  Type
   deriving (Eq, Ord, Show)
 
@@ -59,6 +47,22 @@ data ConstVal
   | Character Char
   | String    String
   deriving (Eq, Ord, Show)
+
+data DeclSpecifier
+  = Type Type
+  | Store StoreSpecifier
+  -- | type-qualifier
+
+data StoreSpecifier 
+  = Auto
+  | Register
+  | Static
+  | Extern
+  | Typedef
+
+data TypeQualifier
+  = Const
+  | Volatile
 
 {-- ========================================
  -           Statement & Expression
@@ -71,10 +75,10 @@ data Stmt
   | RetStmt       Stmt
   | AssignStmt    Expr Expr
   | VoidStmt              -- Does nothing 
-  deriving(Show)
+  deriving(Eq, Ord, Show)
 
 data Expr
-  = Const    Type ConstVal
+  = Constant    Type ConstVal
   | BinaryOp BinOp Expr Expr
   -- | UnaryOp  UnOp
   | Assign   Expr

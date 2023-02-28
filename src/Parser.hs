@@ -10,37 +10,35 @@ import qualified Text.Parsec.Expr as Ex
 import qualified Text.Parsec.Token as Tok
 
 {-- ========================================
- -           Program to Blocks
+ -           Program to Units
  - ======================================== --}
 parseProgram :: String -> Either ParseError Program
-parseProgram s = parse getBlocks "<stdin>" s
+parseProgram s = parse getUnits "<stdin>" s
 
-getBlocks :: Parser Program
-getBlocks = do
-  blks   <- many1 block
+getUnits :: Parser Program
+getUnits = do
+  blks   <- many1 unit
   return blks
 
 {-- ========================================
- -                Blocks
+ -                Units
  - ======================================== --}
--- These are the three possible blocks
-block :: Parser Block
-block 
+unit :: Parser Unit
+unit 
     =  try declaration
-   -- <|> try function
+   <|> try function
    <?> "block"
 
-declaration :: Parser Block
+declaration :: Parser Unit
 declaration = do
   dlist   <- declList <* semi
-  return $ Decl dlist
-  <?> "declaration"
+  return $ Declaration dlist
 
--- function :: Parser Block
--- function = do
---   (tp, name, params) <- funcDecl
---   stmt <- statement
---   return $ Func tp name params stmt
+function :: Parser Unit
+function = do
+  (tp, name, params) <- funcDecl
+  stmt <- statement
+  return $ Function tp name params stmt
 
 {-- ========================================
  -                Specifier
@@ -56,6 +54,21 @@ specifier
   <|> (reserved "double"  >> return Double)
   <?> "valid type"
 
+ptrType :: Parser Type
+ptrType = do
+  -- reservedOp "*"
+  p <- optionMaybe pointers
+  t <- specifier
+  case p of
+    Just s -> return $ Pointer t --foldr (\tp -> convertPointer tp) t s
+    Nothing -> return $ Pointer t
+
+convertPointer :: Char -> Type -> Type
+convertPointer ptr t = if ptr == '*' then Pointer t else t 
+
+pointers :: Parser String
+pointers =  many (try $ char '*') 
+
 {-- ========================================
  -                Declaration
  - ======================================== --}
@@ -65,54 +78,36 @@ declList = do
   name  <- commaSep declarator 
   return $ getDecl tp name
 
-getDecl :: Type -> [(String, DirectDeclarator)] -> DeclList
+getDecl :: Type -> [(String, InitDeclarator)] -> DeclList
 getDecl t str_decl = foldr f [] str_decl
   where f (ptr, direct) acc = (checkPointer ptr t, direct):acc
         checkPointer ptr t = if ptr == "*" then Pointer t else t 
 
 pointer :: Parser String
-pointer = length <$> many (symbol "*")
+pointer = option "" $ (reservedOp "*" >> return "*")
 
-declar :: Parser (String, InitDeclarator, )
-declar = do
-  ptr   <- pointer 
-  decl  <- (try funcDirect <|> variableDirect)
-  -- arr   <- array
+declarator :: Parser (String, InitDeclarator)
+declarator = do
+  ptr  <- pointer
+  decl <- variableDirect -- funcDirect <|>
   init <- optionMaybe assignExpr
   return (ptr, case init of
                   Just e  -> (decl, e)
                   Nothing -> (decl, VoidExpr) )
 
--- array :: Parser String
-
-getDecl :: Type -> [(String, InitDeclarator)] -> DeclarList
-getDecl tp init_decl = foldr f []   
-
-declarator :: Parser (String, DirectDeclarator)
-declarator = do
-  ptr  <- pointer
-  decl <- (try funcDirect <|> variableDirect)
-  return (ptr, decl)
-
-funcDirect :: Parser DirectDeclarator
-funcDirect = do 
-  name    <- identifier
-  params  <- parens paramList 
-  return $ Funct name params 
+funcDecl = do
+  tp     <- specifier
+  name   <- identifier
+  params <- parens paramList
+  return (tp, name, params)
 
 variableDirect :: Parser DirectDeclarator
 variableDirect = do
-  var <- identifier
-  sizes <- many $ char '[' *> integer <* char ']'
-  let directDecl = case sizes of
-        [] -> Var var 
-        _  -> foldr (\s acc -> Array var s ) (Var var ) sizes
-  return directDecl
-  -- var     <- identifier
-  -- size    <- optionMaybe $ char '[' >> integer >>= \n -> char ']' >> return n
-  -- return $ case size of
-  --   Nothing -> Var var 
-  --   Just s -> Array var s 
+  var     <- identifier
+  size    <- optionMaybe $ char '[' >> integer >>= \n -> char ']' >> return n
+  return $ case size of
+    Nothing -> Var var 
+    Just s -> Array var s 
 
 {-- ========================================
  -                List
@@ -238,11 +233,27 @@ constant :: Parser Expr
 constant 
   =   try (do
             n <- float
-            return $ Const Float (Floating n))
+            return $ Constant Float (Floating n))
   <|> try (do
             n <- integer
-            return $ Const Int (Integer n))
-  <?> "Not a legal Constant"
+            return $ Constant Int (Integer n))
+  <|> try stringLiteral
+  <|> try charLiteral
+  <?> "Not a legal constant"
+
+-- | Parses a string literal enclosed in double quotes.
+stringLiteral :: Parser Expr
+stringLiteral = do
+  str <- Tok.stringLiteral lexer
+  return $ Constant (Pointer Char) (String str)
+
+-- | Parses a character literal enclosed in single quotes.
+charLiteral :: Parser Expr
+charLiteral = do
+  char '\''
+  c <- anyChar
+  char '\''
+  return $ Constant Char (Character c)
 
 variable :: Parser Expr
 variable = do
