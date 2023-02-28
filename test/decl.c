@@ -6,6 +6,7 @@ int a = 1, b =2;
 
 int d[5];
 char c = 'a';
+char *hah = "Hallo, World";
 
 char  a1, *a2;
 short b1, *b2;
