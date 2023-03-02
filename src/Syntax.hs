@@ -5,7 +5,7 @@ type Name = String
 type Size = Integer
 
 data Unit
-  = Declaration    DeclList
+  = Declaration    Declaration
   | Function       Type Name DeclList Stmt
   -- | ProtoFunc Type Name ParamList
   deriving(Show)
