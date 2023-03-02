@@ -18,27 +18,28 @@ parseProgram s = parse getUnits "<stdin>" s
 getUnits :: Parser Program
 getUnits = do
   blks   <- many1 unit
-  return blks
+  return $ concat blks
 
 {-- ========================================
  -                Units
  - ======================================== --}
-unit :: Parser Unit
+unit :: Parser [Unit]
 unit 
     =  try declaration
    <|> try function
    <?> "block"
 
-declaration :: Parser Unit
+declaration :: Parser [Unit]
 declaration = do
   dlist   <- declList <* semi
-  return $ Declaration dlist
+  let decls = map (\d -> Declaration d) dlist
+  return $ decls
 
-function :: Parser Unit
+function :: Parser [Unit]
 function = do
   (tp, name, params) <- funcDecl
   stmt <- statement
-  return $ Function tp name params stmt
+  return $ [Function tp name params stmt]
 
 {-- ========================================
  -                Specifier
