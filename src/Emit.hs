@@ -53,7 +53,7 @@ declaration (typ, (directDecl, expr))
  -      Type Conversion
  - ================================================== --}
 typeConvert :: S.Type -> AST.Type
-typeConvert S.Void  = void
+typeConvert S.Void  = LLVM.AST.Type.void
 typeConvert S.Char  = i8
 typeConvert S.Short = i16
 typeConvert S.Int   = i32
