@@ -15,11 +15,8 @@ import System.Console.GetOpt
 import LLVM.AST 
 import qualified LLVM.AST as AST
 
-emptyModule :: String -> AST.Module
-emptyModule label = defaultModule { moduleName = fromString label }
-
 initModule :: AST.Module
-initModule = emptyModule "Haskell C Compiler"
+initModule = defaultModule { moduleName = fromString "Haskell C Compiler" }
 
 process :: String -> IO String
 process content = do
@@ -27,9 +24,9 @@ process content = do
   case res of 
     Left err -> print err >> return ""
     Right ex -> do
-      -- let ir = genProgram ex  
+      ir <- codegen initModule ex
       mapM_ print ex
-      return  " " --ir
+      return  ir
 
 repl :: IO()
 repl = runInputT defaultSettings loop
@@ -44,8 +41,9 @@ main :: IO ()
 main = do
   args <- getArgs
   case args of
-    []      -> repl
-    [file]  -> do  --readFile file >>= process
-      content <- readFile file
-      ir      <- process content
-      writeFile "output.ll" ir
+    [] -> repl
+    ("-i":infile:"-o":outfile:[]) -> do
+      content <- readFile infile
+      ir <- process content
+      writeFile outfile ir
+    _ -> error "Usage: program -i <input_file> -o <output_file>"
