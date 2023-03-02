@@ -7,7 +7,7 @@ it's inspired by the [kaleidoscope](https://llvm.org/docs/tutorial/) project and
 kaleidoscope is a extremely simple programming language designed for people to learn LLVM
 
 # Dependencies
-there are two main dependencies
+there are three main dependencies
 
 ## 1. parsec
 use `stack install parsec` to install `parsec` package
@@ -15,6 +15,9 @@ use `stack install parsec` to install `parsec` package
 ## 2. llvm-hs
 llvm-hs has not been maintained for a long time, and the newest version doesn't compile, so you need
 to download them from github and checkout to patched version like: https://github.com/christianlavoie/llvm-hs.git
+
+## 3. bytestring
+llvm-hs uses `byteString`, not `String` to improve its performance, but they didn't encapsulate it well, so we are forced to installed bytestring package to do the conversion
 
 # How to run it
 
