@@ -6,6 +6,7 @@ import LLVM.AST
 import LLVM.AST.Global
 import LLVM.AST.Type(void, i8, i16, i32, i64, ptr, float, double)
 import qualified LLVM.AST as AST
+import qualified LLVM.AST.Global as G
 
 import Data.Map(Map)
 import qualified Data.Map as Map
@@ -18,7 +19,6 @@ newtype LLVM a = LLVM (State AST.Module a)
 runLLVM :: AST.Module -> LLVM a -> AST.Module
 runLLVM modul (LLVM m) = execState m modul
 
--- execState :: [(String, Oprand)] -> Codegen a ->
 
 {-- ==================================================
  -      States in Code Generation Process
@@ -58,6 +58,17 @@ uniqueName name names =
 {-- ==================================================
  -      Declarations
  - ================================================== --}
+globalDefine :: Type -> String -> LLVM()
+globalDefine varType varName = addDefn $
+  GlobalDefinition $ globalVariableDefaults {
+   name        = mkName varName
+   -- linkage :: L.Linkage,
+   -- visibility :: V.Visibility,
+ , G.type'     = varType
+   -- initializer :: Maybe Constant,
+ }
+
+
 addDefn :: Definition -> LLVM ()
 addDefn d = do
   defs <- gets moduleDefinitions
