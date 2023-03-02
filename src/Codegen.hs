@@ -3,6 +3,7 @@
 module Codegen where
 
 import LLVM.AST
+import LLVM.AST.Global
 import LLVM.AST.Type(void, i8, i16, i32, i64, ptr, float, double)
 import qualified LLVM.AST as AST
 
@@ -54,7 +55,22 @@ uniqueName name names =
     Just idx  -> (name ++ show idx, Map.insert name (idx+1) names)
 
 
+{-- ==================================================
+ -      Declarations
+ - ================================================== --}
+addDefn :: Definition -> LLVM ()
+addDefn d = do
+  defs <- gets moduleDefinitions
+  modify $ \s -> s { moduleDefinitions = defs ++ [d] }
 
+define ::  Type -> String -> [(Type, Name)] -> [BasicBlock] -> LLVM ()
+define retty label argtys body = addDefn $
+  GlobalDefinition $ functionDefaults {
+    name        = mkName label
+  , parameters  = ([Parameter ty nm [] | (ty, nm) <- argtys], False)
+  , returnType  = retty
+  , basicBlocks = body
+  }
 -------------------------------------------------------
 -- Old Code 
 -------------------------------------------------------
