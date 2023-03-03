@@ -39,10 +39,10 @@ unitToLLVM :: S.Unit -> LLVM()
 unitToLLVM (S.Declaration decl)
   = declaration decl
 
-unitToLLVM (S.Function typ name params stmt)
-  = case stmt of 
-    S.VoidStmt -> do
-     define
+-- unitToLLVM (S.Function typ name params stmt)
+--   = case stmt of 
+--     S.VoidStmt -> do
+--      define 
 
 {-- ==================================================
  -      Declarations
