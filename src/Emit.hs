@@ -39,10 +39,12 @@ unitToLLVM :: S.Unit -> LLVM()
 unitToLLVM (S.Declaration decl)
   = declaration decl
 
--- unitToLLVM (S.Function typ name params stmt)
---   = case stmt of 
---     S.VoidStmt -> do
---      define 
+unitToLLVM (S.Function typ name params stmt)
+  = case stmt of 
+    S.VoidStmt -> do
+      define (typeConvert typ) name (makeParams params) []
+    -- S.CompoundStmt -> do
+
 
 {-- ==================================================
  -      Declarations
@@ -58,7 +60,8 @@ declaration (typ, (directDecl, expr))
         S.Array name _ -> do
           globalDefine (typeConvert typ) name 
 
--- arrayDecl :: S.Declaration -> LLVM()
+makeParams :: [(S.Type, (S.DirectDeclarator, S.Expr))] -> [(AST.Type, AST.Name)]
+makeParams = map (\(ty, (dirDecl, _)) -> (typeConvert ty, AST.mkName (getName dirDecl)))
 
 getName :: S.DirectDeclarator -> String
 getName dd = case dd of
@@ -77,5 +80,7 @@ typeConvert S.Long  = i64
 typeConvert S.Float = float
 typeConvert S.Double = double
 
-
+{-- ==================================================
+ -      Statements
+ - ================================================== --}
 
