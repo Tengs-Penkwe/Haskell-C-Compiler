@@ -19,7 +19,6 @@ newtype LLVM a = LLVM (State AST.Module a)
 runLLVM :: AST.Module -> LLVM a -> AST.Module
 runLLVM modul (LLVM m) = execState m modul
 
-
 {-- ==================================================
  -      States in Code Generation Process
  - ================================================== --}
@@ -41,7 +40,6 @@ data UnitState
   , stack :: [Named Instruction]
   , term  :: Maybe (Named Terminator)
   } deriving Show
-
 
 {-- ==================================================
  -      Names 
@@ -68,13 +66,12 @@ globalDefine varType varName = addDefn $
    -- initializer :: Maybe Constant,
  }
 
-
 addDefn :: Definition -> LLVM ()
 addDefn d = do
   defs <- gets moduleDefinitions
   modify $ \s -> s { moduleDefinitions = defs ++ [d] }
 
-define ::  Type -> String -> [(Type, Name)] -> [BasicBlock] -> LLVM ()
+define :: Type -> String -> [(Type, Name)] -> [BasicBlock] -> LLVM ()
 define retty label argtys body = addDefn $
   GlobalDefinition $ functionDefaults {
     name        = mkName label

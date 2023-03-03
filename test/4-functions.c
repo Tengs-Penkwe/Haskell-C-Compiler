@@ -1,10 +1,8 @@
-int * x[5], y , z;
-
-float  a,  b, * c;
+float  a,  b, *c;
+// int *x[5], y , z;
 
 float try() {
   float a, b, c;
-
 }
 
 void haha() {

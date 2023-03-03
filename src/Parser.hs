@@ -55,21 +55,6 @@ specifier
   <|> (reserved "double"  >> return Double)
   <?> "valid type"
 
-ptrType :: Parser Type
-ptrType = do
-  -- reservedOp "*"
-  p <- optionMaybe pointers
-  t <- specifier
-  case p of
-    Just s -> return $ Pointer t --foldr (\tp -> convertPointer tp) t s
-    Nothing -> return $ Pointer t
-
-convertPointer :: Char -> Type -> Type
-convertPointer ptr t = if ptr == '*' then Pointer t else t 
-
-pointers :: Parser String
-pointers =  many (try $ char '*') 
-
 {-- ========================================
  -                Declaration
  - ======================================== --}
@@ -81,16 +66,18 @@ declList = do
 
 getDecl :: Type -> [(String, InitDeclarator)] -> DeclList
 getDecl t str_decl = foldr f [] str_decl
-  where f (ptr, direct) acc = (checkPointer ptr t, direct):acc
-        checkPointer ptr t = if ptr == "*" then Pointer t else t 
+  where f (ptr, direct) acc = (convertPointer ptr t, direct):acc
 
-pointer :: Parser String
-pointer = option "" $ (reservedOp "*" >> return "*")
+convertPointer :: String -> Type -> Type
+convertPointer ptr t = if not (null ptr) then Pointer t else t 
+
+pointers :: Parser String
+pointers = many (try $ char '*') 
 
 declarator :: Parser (String, InitDeclarator)
 declarator = do
-  ptr  <- pointer
-  decl <- variableDirect -- funcDirect <|>
+  ptr  <- pointers
+  decl <- variableDirect 
   init <- optionMaybe assignExpr
   return (ptr, case init of
                   Just e  -> (decl, e)
@@ -105,10 +92,15 @@ funcDecl = do
 variableDirect :: Parser DirectDeclarator
 variableDirect = do
   var     <- identifier
-  size    <- optionMaybe $ char '[' >> integer >>= \n -> char ']' >> return n
+  size    <- optionMaybe $ brackets integer
+  --TODO: Change it to expression
   return $ case size of
     Nothing -> Var var 
-    Just s -> Array var s 
+    Just s -> Array var s
+  -- size    <- many $ brackets expr
+  -- return $ case size of
+  --   0 -> Var var 
+  --   Just s -> Array var s
 
 {-- ========================================
  -                List

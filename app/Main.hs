@@ -24,8 +24,8 @@ process content = do
   case res of 
     Left err -> print err >> return ""
     Right ex -> do
-      ir <- codegen initModule ex
       mapM_ print ex
+      ir <- codegen initModule ex
       return  ir
 
 repl :: IO()

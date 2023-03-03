@@ -6,8 +6,7 @@ type Size = Integer
 
 data Unit
   = Declaration    Declaration
-  | Function       Type Name DeclList Stmt
-  -- | ProtoFunc Type Name ParamList
+  | Function       Type Name ParamList Stmt
   deriving(Show)
 
 
@@ -22,7 +21,7 @@ type InitDeclarator = (DirectDeclarator, Expr)
 data DirectDeclarator 
   = Var       Name 
   -- | Funct     Name ParamList 
-  | Array     Name Integer 
+  | Array     Name  Integer -- Expr
   deriving(Eq, Ord, Show) 
 
 {-- ========================================
